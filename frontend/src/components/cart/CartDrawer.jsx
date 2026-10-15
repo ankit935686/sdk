@@ -5,6 +5,9 @@ import { TOKEN_KEY } from '../../hooks/AuthContext'
 import { useAuth } from '../../hooks/useAuth'
 import { useCart } from '../../hooks/useCart'
 import { api, withAuth } from '../../lib/api'
+import { incrementProfileProperty, trackCharged } from '../../services/clevertap'
+
+
 
 export function CartDrawer() {
   const navigate = useNavigate()
@@ -75,8 +78,28 @@ export function CartDrawer() {
 
       const { data } = await api.post('/orders', payload, withAuth(token))
       setConfirmedOrder(data.order)
+
+      // CleverTap: Record "Charged" transaction event
+      trackCharged({
+        totalAmount,
+        subtotal,
+        deliveryFee,
+        discountAmount,
+        couponCode: appliedCoupon?.code,
+        restaurantName: cart.restaurant?.name,
+        restaurantId: cart.restaurant?.id,
+        items: cart.items,
+        orderId: data.order?.id || data.order?._id,
+      })
+
+      // CleverTap Profile: Increment user's lifetime order count and total spend
+      incrementProfileProperty('Total Orders', 1)
+      incrementProfileProperty('Total Spent', totalAmount)
+
       clearCart()
+
     } catch (err) {
+
       console.error('Checkout error:', err)
       setOrderError(err.response?.data?.error || 'Unable to place order. Please try again.')
     } finally {

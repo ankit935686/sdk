@@ -9,6 +9,8 @@ import { TOKEN_KEY } from '../hooks/AuthContext'
 import { useAuth } from '../hooks/useAuth'
 import { useCart } from '../hooks/useCart'
 import { api, withAuth } from '../lib/api'
+import { trackPageView } from '../services/clevertap'
+
 
 const DIETARY_OPTIONS = [
   'None',
@@ -41,8 +43,14 @@ export function DashboardPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState({ type: '', message: '' })
 
+  // Track Dashboard page view
+  useEffect(() => {
+    trackPageView('Dashboard')
+  }, [])
+
   // Initialize form with current user profile
   useEffect(() => {
+
     if (user) {
       setFormData({
         name: user.name || '',

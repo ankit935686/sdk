@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CartDrawer } from '../components/cart/CartDrawer'
 import { CategoryFilter } from '../components/home/CategoryFilter'
 import { HeroSection } from '../components/home/HeroSection'
@@ -10,6 +10,7 @@ import { Toast } from '../components/ui/Toast'
 import { restaurants } from '../data/foodData'
 import { useAuth } from '../hooks/useAuth'
 import { useCart } from '../hooks/useCart'
+import { trackPageView } from '../services/clevertap'
 
 export function LandingPage() {
   const { user, logout } = useAuth()
@@ -17,6 +18,13 @@ export function LandingPage() {
 
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+
+  useEffect(() => {
+    trackPageView('Landing Page', {
+      'Featured Restaurants Count': restaurants.length,
+    })
+  }, [])
+
 
   function handleScrollToRestaurants() {
     const el = document.getElementById('restaurants-section')

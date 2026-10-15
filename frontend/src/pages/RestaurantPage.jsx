@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { CartDrawer } from '../components/cart/CartDrawer'
 import { Footer } from '../components/layout/Footer'
@@ -7,6 +7,8 @@ import { Toast } from '../components/ui/Toast'
 import { getRestaurantById, offers } from '../data/foodData'
 import { useAuth } from '../hooks/useAuth'
 import { useCart } from '../hooks/useCart'
+import { trackEvent } from '../services/clevertap'
+
 
 export function RestaurantPage() {
   const { id } = useParams()
@@ -28,6 +30,19 @@ export function RestaurantPage() {
   const [activeCategory, setActiveCategory] = useState('All')
   const [vegOnly, setVegOnly] = useState(false)
   const [menuSearch, setMenuSearch] = useState('')
+
+  useEffect(() => {
+    if (restaurant) {
+      trackEvent('Restaurant Viewed', {
+        'Restaurant ID': restaurant.id,
+        'Restaurant Name': restaurant.name,
+        'Cuisine': restaurant.cuisine,
+        'Rating': restaurant.rating,
+        'Delivery Time': restaurant.deliveryTime,
+      })
+    }
+  }, [id, restaurant])
+
 
   if (!restaurant) {
     return (

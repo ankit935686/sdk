@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { offers } from '../data/foodData'
+import { trackEvent } from '../services/clevertap'
 
 const CART_STORAGE_KEY = 'platera_cart_state'
 
@@ -35,6 +36,16 @@ export function CartProvider({ children }) {
   }
 
   function addToCart(item, restaurant) {
+    // CleverTap: Track "Added to Cart" event
+    trackEvent('Added to Cart', {
+      'Item ID': item.id,
+      'Item Name': item.name,
+      'Price': item.price,
+      'Category': item.category || 'General',
+      'Restaurant ID': restaurant.id,
+      'Restaurant Name': restaurant.name,
+    })
+
     setCart((prev) => {
       // If switching restaurants, start fresh for that restaurant
       const isDifferentRestaurant = prev.restaurant && prev.restaurant.id !== restaurant.id
@@ -72,6 +83,16 @@ export function CartProvider({ children }) {
   }
 
   function removeFromCart(itemId) {
+    const itemToRemove = cart.items.find((i) => i.id === itemId)
+    if (itemToRemove) {
+      // CleverTap: Track "Removed from Cart"
+      trackEvent('Removed from Cart', {
+        'Item ID': itemId,
+        'Item Name': itemToRemove.name,
+        'Price': itemToRemove.price,
+      })
+    }
+
     setCart((prev) => {
       const newItems = prev.items.filter((i) => i.id !== itemId)
       return {
@@ -96,6 +117,7 @@ export function CartProvider({ children }) {
   }
 
   function clearCart() {
+    trackEvent('Cart Cleared')
     setCart({ restaurant: null, items: [] })
     setAppliedCoupon(null)
     showToast('Cart cleared')
@@ -117,10 +139,18 @@ export function CartProvider({ children }) {
       return false
     }
 
+    // CleverTap: Track "Coupon Applied"
+    trackEvent('Coupon Applied', {
+      'Coupon Code': foundOffer.code,
+      'Discount Percent': foundOffer.discountPercent || 0,
+      'Free Delivery': Boolean(foundOffer.freeDelivery),
+    })
+
     setAppliedCoupon(foundOffer)
     showToast(`Coupon ${foundOffer.code} applied successfully! 🎉`)
     return true
   }
+
 
   function removeCoupon() {
     setAppliedCoupon(null)

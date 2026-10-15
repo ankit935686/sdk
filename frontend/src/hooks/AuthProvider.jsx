@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, withAuth } from '../lib/api'
+import { identifyUser, trackEvent, updateUserProfile } from '../services/clevertap'
 import { AuthContext, TOKEN_KEY } from './AuthContext'
 
 export function AuthProvider({ children }) {
@@ -11,7 +12,13 @@ export function AuthProvider({ children }) {
     if (!token) return
 
     api.get('/auth/me', withAuth(token))
-      .then(({ data }) => setUser(data.user))
+      .then(({ data }) => {
+        setUser(data.user)
+        // Identify returning authenticated user
+        if (data.user) {
+          identifyUser(data.user)
+        }
+      })
       .catch(() => {
         localStorage.removeItem(TOKEN_KEY)
         setHasToken(false)
@@ -23,6 +30,15 @@ export function AuthProvider({ children }) {
     localStorage.setItem(TOKEN_KEY, data.token)
     setHasToken(true)
     setUser(data.user)
+
+    // CleverTap Integration: Identify the authenticated user
+    if (data.user) {
+      identifyUser(data.user)
+      trackEvent(mode === 'login' ? 'User Logged In' : 'User Signed Up', {
+        'Auth Method': 'Email/Password',
+      })
+    }
+
     return data.user
   }
 
@@ -31,10 +47,18 @@ export function AuthProvider({ children }) {
     if (!token) throw new Error('Not authenticated')
     const { data } = await api.put('/auth/profile', profileData, withAuth(token))
     setUser(data.user)
+
+    // CleverTap Integration: Update profile properties on current user
+    updateUserProfile(profileData)
+    trackEvent('Profile Updated', {
+      'Updated Fields': Object.keys(profileData).join(', '),
+    })
+
     return data.user
   }
 
   function logout() {
+    trackEvent('User Logged Out')
     localStorage.removeItem(TOKEN_KEY)
     setHasToken(false)
     setUser(null)
@@ -46,3 +70,4 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   )
 }
+
